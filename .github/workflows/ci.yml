@@ -183,57 +183,47 @@ jobs:
   #         (cd %GOPATH%GO_SRC_DIR; make ios)
   windows:
     runs-on: windows-2019
+
+    env:
+      GOPATH: C:\gopath
+      GOROOT: C:\Program Files\Go
+      QT: C:\Qt\6.2\msvc2019_64
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Install Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.23.2'
-      - name: Install QT
-        uses: jurplel/install-qt-action@v3
-        with:
-          version: '6.2'
-          host: 'windows'
-          target: 'desktop'
-          arch: 'win64_msvc2019_64'
-          modules: 'qtwebengine'
-      - name: Prepare environment
-        run: |
-          choco install mingw
-          choco install make
-          choco install nsis -pre
-          $env:PATH = "C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin;C:\MinGW\bin;$env:PATH"
-          $env:MINGW_BIN = "C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin"
-      - name: Initialize Visual Studio Environment
-        shell: cmd
-        run: |
-          REM Locate Visual Studio installation using vswhere
-          FOR /F "tokens=*" %%i IN ('"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath') DO SET VS_INSTALL_PATH=%%i
-          REM Initialize Visual Studio environment
-          CALL "%VS_INSTALL_PATH%\VC\Auxiliary\Build\vcvars64.bat"
-          REM Verify tools are available
-          cl
-          nmake
-          echo Visual Studio environment initialized.
-          CALL "%VS_INSTALL_PATH%\VC\Auxiliary\Build\vcvars64.bat"
-      - name: Build App
-        shell: bash
-        run: |
-          make qt-windows
-          cd frontends/qt
-          makensis setup.ns
-      - name: Upload Installer
-        uses: actions/upload-artifact@v4
-        with:
-          path: frontends\qt\BitBox-installer.exe
-          name: BitBoxApp-Windows-${{ github.sha }}.exe
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23.2'
+
+    - name: Install Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install dependencies
+      run: |
+        choco install make
+        choco install nsis -pre
+        mkdir %GOPATH%\src\github.com\BitBoxSwiss
+        mv bitbox-wallet-app %GOPATH%\src\github.com\BitBoxSwiss\
+
+    - name: Build App
+      run: |
+        cd %GOPATH%\src\github.com\BitBoxSwiss\bitbox-wallet-app
+        make qt-windows
+        cd frontends/qt
+        makensis setup.nsi
+
+    - name: Upload Installer
+      uses: actions/upload-artifact@v4
+      with:
+        path: frontends\qt\BitBox-installer.exe
+        name: BitBoxApp-Windows-${{ github.sha }}.exe
   # report-artifacts:
   #   needs: [android, qt-linux, macos, windows]
   #   runs-on: ubuntu-22.04
