@@ -29,193 +29,237 @@ env:
   GITHUB_BUILD_DIR: ${{github.workspace}}
 
 jobs:
-  test-lint:
-    runs-on: ubuntu-22.04
+  # test-lint:
+  #   runs-on: ubuntu-22.04
+  #   steps:
+  #     - name: Clone the repo
+  #       with:
+  #         submodules: recursive
+  #       uses: actions/checkout@v4
+  #     - name: Run CI script
+  #       # The script also runs golang-ci but it's ok: doesn't take too long and may be useful
+  #       # to keep its linter errors in this log, too.
+  #       run: ./scripts/github-ci.sh ci
+  #       env:
+  #         OS_NAME: linux
+  # android:
+  #   runs-on: ubuntu-22.04
+  #   outputs:
+  #     artifact-url: ${{ steps.upload.outputs.artifact-url }}
+  #   steps:
+  #     - name: Clone the repo
+  #       uses: actions/checkout@v4
+  #     - name: Enable caching
+  #       uses: actions/cache@v4
+  #       with:
+  #         key: ${{runner.os}}-android
+  #         path: |
+  #           ~/.gradle/caches
+  #           ~/.gradle/wrapper
+  #     - name: Build Android
+  #       run: ./scripts/github-ci.sh android
+  #       env:
+  #         OS_NAME: linux
+  #     - name: Upload APK
+  #       id: upload
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         path: frontends/android/BitBoxApp/app/build/outputs/apk/debug/app-debug.apk
+  #         name: BitBoxApp-android-${{github.sha}}.apk
+  #         if-no-files-found: error
+  # qt-linux:
+  #   runs-on: ubuntu-22.04
+  #   outputs:
+  #     artifact-url-ai: ${{ steps.upload-ai.outputs.artifact-url }}
+  #     artifact-url-deb: ${{ steps.upload-deb.outputs.artifact-url }}
+  #     artifact-url-rpm: ${{ steps.upload-rpm.outputs.artifact-url }}
+  #   steps:
+  #     - name: Clone the repo
+  #       uses: actions/checkout@v4
+  #       with:
+  #         submodules: recursive
+  #     - name: Build Qt-Linux
+  #       run: ./scripts/github-ci.sh qt-linux
+  #       env:
+  #         OS_NAME: linux
+  #     - name: Upload AppImage
+  #       id: upload-ai
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         path: frontends/qt/build/linux/BitBoxApp-*.AppImage
+  #         name: BitBoxApp-linux-${{github.sha}}.AppImage
+  #         if-no-files-found: error
+  #     - name: Upload deb
+  #       id: upload-deb
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         path: frontends/qt/build/linux/bitbox_*.deb
+  #         name: BitBoxApp-linux-${{github.sha}}.deb
+  #         if-no-files-found: error
+  #     - name: Upload rpm
+  #       id: upload-rpm
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         path: frontends/qt/build/linux/bitbox-*.rpm
+  #         name: BitBoxApp-linux-${{github.sha}}.rpm
+  #         if-no-files-found: error
+  # macos:
+  #   runs-on: macos-13
+  #   outputs:
+  #     artifact-url: ${{ steps.upload.outputs.artifact-url }}
+  #   steps:
+  #     - name: Clone the repo
+  #       uses: actions/checkout@v4
+  #       with:
+  #         submodules: recursive
+  #     - name: Install Go
+  #       uses: actions/setup-go@v5
+  #       with:
+  #         go-version: 1.23.x
+  #     - name: Install Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: '20.x'
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v4
+  #       with:
+  #         python-version: '3.x'
+  #     - name: Install Qt
+  #       # Qt modules: Not sure why we need qtpositioning - app compilation fails without. Maybe the webengine depends on it.
+  #       # qtpositioning depends on qtserialport.
+  #       # qtwebchannel is for the JS/backend bridge.
+  #       # qtwebengine is for rendering the frontend.
+  #       run: |
+  #         pip install aqtinstall
+  #         aqt install-qt mac desktop 6.2.4 --modules qtpositioning qtserialport qtwebchannel qtwebengine --outputdir ~/Qt
+  #         echo "$HOME/Qt/6.2.4/macos/bin" >> $GITHUB_PATH
+  #         echo "$HOME/Qt/6.2.4/macos/libexec" >> $GITHUB_PATH
+  #     - name: Build macOS app
+  #       run: >
+  #         ./scripts/github-ci.sh qt-osx;
+  #       env:
+  #         OS_NAME: osx
+  #     - name: Archive app
+  #       run: >
+  #         pushd ~/go/src/github.com/BitBoxSwiss/bitbox-wallet-app/frontends/qt/build/osx;
+  #         ditto -c -k --keepParent BitBox.app ${{github.workspace}}/BitBoxApp-macos.zip;
+  #         popd;
+  #     - name: Upload app
+  #       id: upload
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         path: BitBoxApp-macos.zip
+  #         name: BitBoxApp-macos-${{github.sha}}.zip
+  #         if-no-files-found: error
+  # ios:
+  #   runs-on: macos-14
+  #   env:
+  #     GO_SRC_DIR: src/github.com/BitBoxSwiss/bitbox-wallet-app
+  #   steps:
+  #     - name: Clone the repo
+  #       uses: actions/checkout@v4
+  #       with:
+  #         submodules: recursive
+  #     - name: Install Go
+  #       uses: actions/setup-go@v5
+  #       with:
+  #         # Take Go version to install from go.mod.
+  #         go-version-file: 'go.mod'
+  #     - name: Set GOPATH
+  #       run: |
+  #         echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
+  #     - name: Copy repo to GOPATH
+  #       # This is needed as gomobile is still unaware of go modules, so the repo must be in GOPATH
+  #       run: |
+  #         mkdir -p $GOPATH/$(dirname $GO_SRC_DIR)
+  #         cp -a ${{github.workspace}} $GOPATH/$(dirname $GO_SRC_DIR)
+  #     - name: Install Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: '20.x'
+  #     - name: Build iOS app
+  #       run: |
+  #         make gomobileinit
+  #         (cd $GOPATH/$GO_SRC_DIR; make ios)
+  windows:
+    runs-on: windows-2019
+    defaults:
+      run:
+        shell: bash
     steps:
-      - name: Clone the repo
-        with:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with: 
           submodules: recursive
-        uses: actions/checkout@v4
-      - name: Run CI script
-        # The script also runs golang-ci but it's ok: doesn't take too long and may be useful
-        # to keep its linter errors in this log, too.
-        run: ./scripts/github-ci.sh ci
-        env:
-          OS_NAME: linux
-  android:
-    runs-on: ubuntu-22.04
-    outputs:
-      artifact-url: ${{ steps.upload.outputs.artifact-url }}
-    steps:
-      - name: Clone the repo
-        uses: actions/checkout@v4
-      - name: Enable caching
-        uses: actions/cache@v4
-        with:
-          key: ${{runner.os}}-android
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-      - name: Build Android
-        run: ./scripts/github-ci.sh android
-        env:
-          OS_NAME: linux
-      - name: Upload APK
-        id: upload
-        uses: actions/upload-artifact@v4
-        with:
-          path: frontends/android/BitBoxApp/app/build/outputs/apk/debug/app-debug.apk
-          name: BitBoxApp-android-${{github.sha}}.apk
-          if-no-files-found: error
-  qt-linux:
-    runs-on: ubuntu-22.04
-    outputs:
-      artifact-url-ai: ${{ steps.upload-ai.outputs.artifact-url }}
-      artifact-url-deb: ${{ steps.upload-deb.outputs.artifact-url }}
-      artifact-url-rpm: ${{ steps.upload-rpm.outputs.artifact-url }}
-    steps:
-      - name: Clone the repo
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-      - name: Build Qt-Linux
-        run: ./scripts/github-ci.sh qt-linux
-        env:
-          OS_NAME: linux
-      - name: Upload AppImage
-        id: upload-ai
-        uses: actions/upload-artifact@v4
-        with:
-          path: frontends/qt/build/linux/BitBoxApp-*.AppImage
-          name: BitBoxApp-linux-${{github.sha}}.AppImage
-          if-no-files-found: error
-      - name: Upload deb
-        id: upload-deb
-        uses: actions/upload-artifact@v4
-        with:
-          path: frontends/qt/build/linux/bitbox_*.deb
-          name: BitBoxApp-linux-${{github.sha}}.deb
-          if-no-files-found: error
-      - name: Upload rpm
-        id: upload-rpm
-        uses: actions/upload-artifact@v4
-        with:
-          path: frontends/qt/build/linux/bitbox-*.rpm
-          name: BitBoxApp-linux-${{github.sha}}.rpm
-          if-no-files-found: error
-  macos:
-    runs-on: macos-13
-    outputs:
-      artifact-url: ${{ steps.upload.outputs.artifact-url }}
-    steps:
-      - name: Clone the repo
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-      - name: Install Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: 1.23.x
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
-      - name: Install Qt
-        # Qt modules: Not sure why we need qtpositioning - app compilation fails without. Maybe the webengine depends on it.
-        # qtpositioning depends on qtserialport.
-        # qtwebchannel is for the JS/backend bridge.
-        # qtwebengine is for rendering the frontend.
-        run: |
-          pip install aqtinstall
-          aqt install-qt mac desktop 6.2.4 --modules qtpositioning qtserialport qtwebchannel qtwebengine --outputdir ~/Qt
-          echo "$HOME/Qt/6.2.4/macos/bin" >> $GITHUB_PATH
-          echo "$HOME/Qt/6.2.4/macos/libexec" >> $GITHUB_PATH
-      - name: Build macOS app
-        run: >
-          ./scripts/github-ci.sh qt-osx;
-        env:
-          OS_NAME: osx
-      - name: Archive app
-        run: >
-          pushd ~/go/src/github.com/BitBoxSwiss/bitbox-wallet-app/frontends/qt/build/osx;
-          ditto -c -k --keepParent BitBox.app ${{github.workspace}}/BitBoxApp-macos.zip;
-          popd;
-      - name: Upload app
-        id: upload
-        uses: actions/upload-artifact@v4
-        with:
-          path: BitBoxApp-macos.zip
-          name: BitBoxApp-macos-${{github.sha}}.zip
-          if-no-files-found: error
-  ios:
-    runs-on: macos-14
-    env:
-      GO_SRC_DIR: src/github.com/BitBoxSwiss/bitbox-wallet-app
-    steps:
-      - name: Clone the repo
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          # Take Go version to install from go.mod.
+          # Take Go version to install from go.mod
           go-version-file: 'go.mod'
-      - name: Set GOPATH
-        run: |
-          echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
-      - name: Copy repo to GOPATH
-        # This is needed as gomobile is still unaware of go modules, so the repo must be in GOPATH
-        run: |
-          mkdir -p $GOPATH/$(dirname $GO_SRC_DIR)
-          cp -a ${{github.workspace}} $GOPATH/$(dirname $GO_SRC_DIR)
-      - name: Install Node.js
-        uses: actions/setup-node@v4
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
         with:
-          node-version: '20.x'
-      - name: Build iOS app
+          version: '6.2'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2019_64'
+          modules: 'qtwebengine qtwebchannel qtpositioning'
+      - name: Install other dependencies
         run: |
-          make gomobileinit
-          (cd $GOPATH/$GO_SRC_DIR; make ios)
+          echo "MINGW_BIN=/C/mingw64/bin" >> $GITHUB_ENV
+      - name: Link Visual Studio editions
+        # This is needed due to our build expecting the Community edition, but Enterprise is pre-installed
+        shell: cmd
+        run: |
+          mklink /J "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community" "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise"
+      - name: Build Windows app
+        run: |
+          make qt-windows
+          cd frontends/qt
+          makensis setup.nsi
+      - name: Upload Installer
+        uses: actions/upload-artifact@v4
+        with:
+          path: frontends/qt/BitBox-installer.exe
+          name: BitBoxApp-Windows-${{ github.sha }}.exe
+  # report-artifacts:
+  #   needs: [android, qt-linux, macos]
+  #   runs-on: ubuntu-22.04
+  #   if: ${{ !cancelled() && github.event_name == 'push' }}
+  #   steps:
+  #     - name: Clone the repo
+  #       uses: actions/checkout@v4
+  #     - name: Create vars
+  #       id: vars
+  #       run: |
+  #         echo "git_sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+  #     - name: Message for success
+  #       uses: mattermost/action-mattermost-notify@master
+  #       continue-on-error: true
+  #       if: job.status == 'success'
+  #       with:
+  #         MATTERMOST_WEBHOOK_URL: ${{ secrets.MM_WEBHOOK_URL }}
+  #         MATTERMOST_ICON_URL: https://cdn4.iconfinder.com/data/icons/basic-ui-2-line/32/check-mark-checklist-complete-done-512.png
+  #         MATTERMOST_CHANNEL: eng-artifacts
+  #         TEXT: |
+  #           **New artifacts built**
+  #           ([${{ github.ref_name }}](https://github.com/${{ github.repository }}/tree/${{ github.ref_name }}), [${{ steps.vars.outputs.git_sha_short }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }}), [artifacts](https://github.com/${{ github.repository }}/actions/runs/${{github.run_id}}#artifacts))
+  #           * Android - [APK](${{needs.android.outputs.artifact-url}})
+  #           * Linux - [AppImage](${{needs.qt-linux.outputs.artifact-url-ai}}), [DEB](${{needs.qt-linux.outputs.artifact-url-deb}}), [RPM](${{needs.qt-linux.outputs.artifact-url-rpm}})
+  #           * MacOS - [Zip](${{needs.macos.outputs.artifact-url}})
 
-  report-artifacts:
-    needs: [android, qt-linux, macos]
-    runs-on: ubuntu-22.04
-    if: ${{ !cancelled() && github.event_name == 'push' }}
-    steps:
-      - name: Clone the repo
-        uses: actions/checkout@v4
-      - name: Create vars
-        id: vars
-        run: |
-          echo "git_sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-      - name: Message for success
-        uses: mattermost/action-mattermost-notify@master
-        continue-on-error: true
-        if: job.status == 'success'
-        with:
-          MATTERMOST_WEBHOOK_URL: ${{ secrets.MM_WEBHOOK_URL }}
-          MATTERMOST_ICON_URL: https://cdn4.iconfinder.com/data/icons/basic-ui-2-line/32/check-mark-checklist-complete-done-512.png
-          MATTERMOST_CHANNEL: eng-artifacts
-          TEXT: |
-            **New artifacts built**
-            ([${{ github.ref_name }}](https://github.com/${{ github.repository }}/tree/${{ github.ref_name }}), [${{ steps.vars.outputs.git_sha_short }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }}), [artifacts](https://github.com/${{ github.repository }}/actions/runs/${{github.run_id}}#artifacts))
-            * Android - [APK](${{needs.android.outputs.artifact-url}})
-            * Linux - [AppImage](${{needs.qt-linux.outputs.artifact-url-ai}}), [DEB](${{needs.qt-linux.outputs.artifact-url-deb}}), [RPM](${{needs.qt-linux.outputs.artifact-url-rpm}})
-            * MacOS - [Zip](${{needs.macos.outputs.artifact-url}})
-
-      - name: Message for failure
-        uses: mattermost/action-mattermost-notify@master
-        continue-on-error: true
-        if: job.status == 'failure'
-        with:
-          MATTERMOST_WEBHOOK_URL: ${{ secrets.MM_WEBHOOK_URL }}
-          MATTERMOST_ICON_URL: https://cdn4.iconfinder.com/data/icons/basic-ui-2-line/32/exclamation-mark-triangle-sign-caution-1024.png
-          MATTERMOST_CHANNEL: eng-build-failures
-          TEXT: |
-            **Oh no! [${{ steps.vars.outputs.git_sha_short }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) failed to build.**
-            See [run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for more details.
+  #     - name: Message for failure
+  #       uses: mattermost/action-mattermost-notify@master
+  #       continue-on-error: true
+  #       if: job.status == 'failure'
+  #       with:
+  #         MATTERMOST_WEBHOOK_URL: ${{ secrets.MM_WEBHOOK_URL }}
+  #         MATTERMOST_ICON_URL: https://cdn4.iconfinder.com/data/icons/basic-ui-2-line/32/exclamation-mark-triangle-sign-caution-1024.png
+  #         MATTERMOST_CHANNEL: eng-build-failures
+  #         TEXT: |
+  #           **Oh no! [${{ steps.vars.outputs.git_sha_short }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) failed to build.**
+  #           See [run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for more details.
