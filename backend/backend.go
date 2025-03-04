@@ -88,6 +88,7 @@ var fixedURLWhitelist = []string{
 	"https://pocketbitcoin.com/",
 	// BTCDirect
 	"https://btcdirect.eu/",
+	"https://my.btcdirect.eu/",
 	// Bitsurance
 	"https://www.bitsurance.eu/",
 	"https://get.bitsurance.eu/",
