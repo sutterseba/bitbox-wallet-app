@@ -27,7 +27,7 @@ const (
 
 	bitrefillRef = "SHU5bB6y"
 
-	bitrefillProdUrl = "https://embed.bitrefill.com/"
+	bitrefillProdUrl = "https://bitboxapp.shiftcrypto.io/widgets/bitrefill/v1/bitrefill.html"
 )
 
 type bitrefillInfo struct {
