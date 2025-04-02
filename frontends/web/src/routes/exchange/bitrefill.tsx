@@ -80,6 +80,8 @@ export const Bitrefill = ({ accounts, code }: TProps) => {
   const config = useLoad(getConfig);
   const [agreedTerms, setAgreedTerms] = useState(false);
 
+  const hasOnlyBTCAccounts = accounts.every(({ coinCode }) => isBitcoinOnly(coinCode));
+
   useEffect(() => {
     if (config) {
       setAgreedTerms(config.frontend.skipBitrefillWidgetDisclaimer);
@@ -112,22 +114,41 @@ export const Bitrefill = ({ accounts, code }: TProps) => {
     if (
       !account
       || !bitrefillInfo?.success
-      || (event.origin !== getURLOrigin(bitrefillInfo.url))
+      || ![getURLOrigin(bitrefillInfo.url), 'https://embed.bitrefill.com'].includes(event.origin)
     ) {
       return;
     }
 
-    const {
-      event: messageEvent,
-      invoiceId,
-      paymentMethod,
-      paymentAmount,
-      paymentAddress,
-    } = JSON.parse(event.data);
+    const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
 
-    switch (messageEvent) {
+    switch (data.event) {
+    case 'request-configuration': {
+      event.source?.postMessage({
+        event: 'configuration',
+        ref: bitrefillInfo.ref,
+        utm_source: 'BITBOX',
+        theme: isDarkMode ? 'dark' : 'light',
+        hl: i18n.resolvedLanguage ? localeMapping[i18n.resolvedLanguage] : 'en',
+        paymentMethods: account.coinCode ? coinMapping[account.coinCode] : 'bitcoin',
+        refundAddress: bitrefillInfo.address,
+        // Option to keep pending payment information longer in session, defaults to 'false'
+        paymentPending: 'true',
+        // Option to show payment information in the widget, defaults to 'true'
+        showPaymentInfo: 'true'
+      }, {
+        targetOrigin: event.origin
+      });
+      break;
+    }
     case 'payment_intent': {
       // User clicked "Pay" in checkout
+      const {
+        invoiceId,
+        paymentMethod,
+        paymentAmount,
+        paymentAddress,
+      } = data;
+
       const parsedAmount = await parseExternalBtcAmount(paymentAmount.toString());
       if (!parsedAmount.success) {
         alertUser(t('unknownError', { errorMessage: 'Invalid amount' }));
@@ -170,7 +191,7 @@ export const Bitrefill = ({ accounts, code }: TProps) => {
       break;
     }
     }
-  }, [bitrefillInfo, account, code, t]);
+  }, [bitrefillInfo, isDarkMode, account, code, t]);
 
   useEffect(() => {
     window.addEventListener('message', handleMessage);
@@ -187,29 +208,6 @@ export const Bitrefill = ({ accounts, code }: TProps) => {
   ) {
     return null;
   }
-
-  const getWidgetURL = () => {
-    if (!bitrefillInfo.address) {
-      alertUser(t('unknownError', { errorMessage: 'Unable to provide refund address' }));
-      return;
-    }
-    const params = new URLSearchParams({
-      ref: bitrefillInfo.ref,
-      utm_source: 'BITBOX',
-      theme: isDarkMode ? 'dark' : 'light',
-      hl: i18n.resolvedLanguage ? localeMapping[i18n.resolvedLanguage] : 'en',
-      paymentMethods: account.coinCode ? coinMapping[account.coinCode] : 'bitcoin',
-      refundAddress: bitrefillInfo.address,
-      // Option to keep pending payment information longer in session, defaults to 'false'
-      paymentPending: 'true',
-      // Option to show payment information in the widget, defaults to 'true'
-      showPaymentInfo: 'true'
-    }).toString();
-
-    return `${bitrefillInfo.url}?${params}`;
-  };
-
-  const hasOnlyBTCAccounts = accounts.every(({ coinCode }) => isBitcoinOnly(coinCode));
 
   return (
     <div className="contentWithGuide">
@@ -236,7 +234,7 @@ export const Bitrefill = ({ accounts, code }: TProps) => {
                     frameBorder="0"
                     className={`${style.iframe} ${!iframeLoaded ? style.hide : ''}`}
                     sandbox="allow-same-origin allow-popups allow-scripts allow-forms"
-                    src={getWidgetURL()}
+                    src={bitrefillInfo.url}
                     onLoad={() => {
                       setIframeLoaded(true);
                       onResize();
