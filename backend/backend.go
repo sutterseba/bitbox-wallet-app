@@ -107,7 +107,6 @@ var fixedURLWhitelist = []string{
 	"https://play.google.com/store/",
 	// Others
 	"https://cointracking.info/import/bitbox/",
-	"http://127.0.0.1:5500/www/widgets/bitrefill/v1/bitrefill.html",
 }
 
 // event are events emitted by the backend.
