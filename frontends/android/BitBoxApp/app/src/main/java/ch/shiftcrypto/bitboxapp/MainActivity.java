@@ -52,6 +52,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import android.widget.Toast;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -351,6 +353,11 @@ public class MainActivity extends AppCompatActivity {
             public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams) {
                 MainActivity.this.filePathCallback = filePathCallback;
                 String[] mimeTypes = fileChooserParams.getAcceptTypes();
+                Toast.makeText(
+                    MainActivity.this, 
+                    "acceptTypes = " + Arrays.toString(mimeTypes), 
+                    Toast.LENGTH_LONG
+                ).show();
                 String fileType = "*/*";
                 if (mimeTypes.length == 1) {
                     // import notes form uses .txt file type, but is not supported here.
