@@ -51,6 +51,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -350,15 +351,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams) {
                 MainActivity.this.filePathCallback = filePathCallback;
-                String[] mimeTypes = fileChooserParams.getAcceptTypes();
+                List<String> mimeTypes = Arrays.asList(fileChooserParams.getAcceptTypes());
                 String fileType = "*/*";
-                if (mimeTypes.length == 1) {
-                    // import notes form uses .txt file type, but is not supported here.
-                    if (".txt".equals(mimeTypes[0])) {
-                        fileType = "text/plain";
-                    } else if (MimeTypeMap.getSingleton().hasMimeType(mimeTypes[0])) {
-                        fileType = mimeTypes[0];
-                    }
+                if (mimeTypes.contains(".jsonl") && mimeTypes.contains(".txt")) {
+                    // Import notes form uses .jsonl and .text file types, but they are not supported here
+                    fileType = "text/plain";
+                } else if (mimeTypes.size() == 1 && MimeTypeMap.getSingleton().hasMimeType(mimeTypes.get(0))) {
+                    fileType = mimeTypes.get(0);
                 }
                 mGetContent.launch(fileType);
                 return true;
