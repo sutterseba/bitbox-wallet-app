@@ -102,7 +102,8 @@ class CustomSchemeHandler: NSObject, WKURLSchemeHandler {
 
 struct WebView: UIViewRepresentable {
     let setHandlers: SetMessageHandlersProtocol
-    
+    let reloadTrigger: Bool
+
     func makeUIView(context: Context) -> some WKWebView {
         let contentController = WKUserContentController()
         let bridge = JavascriptBridge()

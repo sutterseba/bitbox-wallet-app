@@ -176,16 +176,20 @@ class GoAPI: NSObject, MobileserverGoAPIInterfaceProtocol, SetMessageHandlersPro
 struct BitBoxAppApp: App {
     @StateObject private var bluetoothManager = BluetoothManager()
 
+    // Reload trigger state that toggles on foregrounding to prevent blank screens
+    @SwiftUI.State private var webViewReloadTrigger = false
+    
     var body: some Scene {
         WindowGroup {
             GridLayout(alignment: .leading) {
                 let goAPI = GoAPI()
-                WebView(setHandlers: goAPI)
+                WebView(setHandlers: goAPI, reloadTrigger: webViewReloadTrigger)
                     .edgesIgnoringSafeArea(.all)
                     .onAppear {
                         setupGoAPI(goAPI: goAPI)
                     }
                     .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+                        webViewReloadTrigger.toggle()
                         MobileserverManualReconnect()
                         MobileserverTriggerAuth()
                     }
