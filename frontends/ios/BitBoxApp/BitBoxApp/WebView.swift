@@ -132,6 +132,9 @@ struct WebView: UIViewRepresentable {
         // Disables automatic content inset adjustment to prevent safe area issues
         // https://developer.apple.com/documentation/uikit/uiscrollview/contentinsetadjustmentbehavior-swift.property
         webView.scrollView.contentInsetAdjustmentBehavior = .never
+        
+        // Enables navigation by swiping from the display edge
+        webView.allowsBackForwardNavigationGestures = true
 
         setHandlers.setMessageHandlers(handlers: MessageHandlers(webView: webView))
         let source = """
