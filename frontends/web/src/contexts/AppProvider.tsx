@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useState } from 'react';
 import { getConfig, setConfig } from '@/utils/config';
 import { AppContext } from './AppContext';
 import { useLoad } from '@/hooks/api';
@@ -13,6 +13,7 @@ import type { TChartDisplay } from './AppContext';
 import { useOrientation } from '@/hooks/orientation';
 import { useMediaQuery } from '@/hooks/mediaquery';
 import { useSync } from '@/hooks/api';
+import { useNativeHideAmountsGesture } from '@/hooks/native-hide-amounts-gesture';
 
 type TProps = {
   children: ReactNode;
@@ -38,10 +39,13 @@ export const AppProvider = ({ children }: TProps) => {
     setGuideShown(prev => !prev);
   };
 
-  const toggleHideAmounts = () => {
-    setConfig({ frontend: { hideAmounts: !hideAmounts } });
-    setHideAmounts(prev => !prev);
-  };
+  const toggleHideAmounts = useCallback(() => {
+    setHideAmounts(prevHideAmounts => {
+      const nextHideAmounts = !prevHideAmounts;
+      setConfig({ frontend: { hideAmounts: nextHideAmounts } });
+      return nextHideAmounts;
+    });
+  }, []);
 
   const toggleSidebar = () => {
     setActiveSidebar(prev => !prev);
@@ -67,6 +71,8 @@ export const AppProvider = ({ children }: TProps) => {
       }
     });
   }, []);
+
+  useNativeHideAmountsGesture(toggleHideAmounts);
 
   return (
     <AppContext.Provider
@@ -94,4 +100,3 @@ export const AppProvider = ({ children }: TProps) => {
     </AppContext.Provider>
   );
 };
-

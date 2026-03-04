@@ -10,6 +10,7 @@ export declare global {
     };
     onMobileCallResponse?: (queryID: number, response: unknown) => void;
     onMobilePushNotification?: (msg: TPayload) => void;
+    onNativeToggleHideAmountsGesture?: () => boolean;
     runningOnIOS?: boolean;
     // Called by Android when the back button is pressed.
     onBackButtonPressed?: () => boolean;

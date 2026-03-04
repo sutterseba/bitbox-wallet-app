@@ -9,6 +9,7 @@ import SwiftUI
 import WebKit
 import Mobileserver
 import UIKit
+import CoreMotion
 
 // We setup a custom scheme qrc:/... to load web resources from our local bundle.
 // This serves two purposes:
@@ -114,6 +115,102 @@ class CustomSchemeHandler: NSObject, WKURLSchemeHandler {
     }
 }
 
+enum HideAmountsFlipPose {
+    case screenUp
+    case screenDown
+    case other
+}
+
+struct HideAmountsFlipGestureConfig {
+    let armWindow: TimeInterval
+    let returnWindow: TimeInterval
+    let cooldown: TimeInterval
+    let screenUpThreshold: Double
+    let screenDownThreshold: Double
+
+    static let defaultConfig = HideAmountsFlipGestureConfig(
+        armWindow: 0.7,
+        returnWindow: 0.7,
+        cooldown: 0.3,
+        screenUpThreshold: 0.4,
+        screenDownThreshold: 0.9
+    )
+}
+
+final class HideAmountsFlipGestureDetector {
+    private enum State {
+        case idle
+        case armed(armedAt: TimeInterval)
+        case awaitingReturn(upsideDownAt: TimeInterval)
+    }
+
+    private var state: State = .idle
+    private var lastTriggerAt: TimeInterval?
+    private let config: HideAmountsFlipGestureConfig
+
+    init(config: HideAmountsFlipGestureConfig = .defaultConfig) {
+        self.config = config
+    }
+
+    func reset() {
+        state = .idle
+        lastTriggerAt = nil
+    }
+
+    func classify(gravityZ: Double) -> HideAmountsFlipPose {
+        if gravityZ <= -config.screenUpThreshold {
+            return .screenUp
+        }
+        if gravityZ >= config.screenDownThreshold {
+            return .screenDown
+        }
+        return .other
+    }
+
+    func process(gravityZ: Double, timestamp: TimeInterval) -> Bool {
+        let pose = classify(gravityZ: gravityZ)
+
+        if let lastTriggerAt, timestamp - lastTriggerAt < config.cooldown {
+            state = .idle
+            return false
+        }
+
+        switch state {
+        case .idle:
+            if pose == .screenUp {
+                state = .armed(armedAt: timestamp)
+            }
+            return false
+
+        case .armed(let armedAt):
+            if timestamp - armedAt > config.armWindow {
+                state = pose == .screenUp ? .armed(armedAt: timestamp) : .idle
+                return false
+            }
+
+            if pose == .screenDown {
+                state = .awaitingReturn(upsideDownAt: timestamp)
+            } else if pose == .screenUp {
+                state = .armed(armedAt: timestamp)
+            }
+            return false
+
+        case .awaitingReturn(let upsideDownAt):
+            if timestamp - upsideDownAt > config.returnWindow {
+                state = pose == .screenUp ? .armed(armedAt: timestamp) : .idle
+                return false
+            }
+
+            if pose == .screenUp {
+                state = .idle
+                lastTriggerAt = timestamp
+                return true
+            }
+            return false
+        }
+    }
+}
+
 struct WebView: UIViewRepresentable {
     let setHandlers: SetMessageHandlersProtocol
     
@@ -185,12 +282,32 @@ struct WebView: UIViewRepresentable {
     
     class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
         private weak var webView: WKWebView?
+        private let motionManager = CMMotionManager()
+        private let motionQueue: OperationQueue = {
+            let queue = OperationQueue()
+            queue.name = "HideAmountsFlipGestureMotionQueue"
+            queue.qualityOfService = .userInteractive
+            return queue
+        }()
+        private let hideAmountsFlipGestureDetector = HideAmountsFlipGestureDetector()
+
+        private var didBecomeActiveObserver: NSObjectProtocol?
+        private var willResignActiveObserver: NSObjectProtocol?
 
         func attachBackSwipeGesture(to webView: WKWebView) {
             self.webView = webView
             let gesture = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(handleBackSwipe(_:)))
             gesture.edges = .left
             webView.addGestureRecognizer(gesture)
+            setupMotionDetectionLifecycle()
+            if UIApplication.shared.applicationState == .active {
+                startMotionDetectionIfNeeded()
+            }
+        }
+
+        deinit {
+            stopMotionDetection()
+            removeMotionDetectionLifecycle()
         }
 
         @objc private func handleBackSwipe(_ gesture: UIScreenEdgePanGestureRecognizer) {
@@ -216,6 +333,110 @@ struct WebView: UIViewRepresentable {
                     webView.goBack()
                 }
             }
+        }
+
+        private func setupMotionDetectionLifecycle() {
+            guard didBecomeActiveObserver == nil, willResignActiveObserver == nil else {
+                return
+            }
+
+            didBecomeActiveObserver = NotificationCenter.default.addObserver(
+                forName: UIApplication.didBecomeActiveNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.startMotionDetectionIfNeeded()
+            }
+            willResignActiveObserver = NotificationCenter.default.addObserver(
+                forName: UIApplication.willResignActiveNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.stopMotionDetection()
+            }
+        }
+
+        private func removeMotionDetectionLifecycle() {
+            if let didBecomeActiveObserver {
+                NotificationCenter.default.removeObserver(didBecomeActiveObserver)
+                self.didBecomeActiveObserver = nil
+            }
+            if let willResignActiveObserver {
+                NotificationCenter.default.removeObserver(willResignActiveObserver)
+                self.willResignActiveObserver = nil
+            }
+        }
+
+        private func startMotionDetectionIfNeeded() {
+            guard motionManager.isDeviceMotionAvailable else {
+                return
+            }
+            guard !motionManager.isDeviceMotionActive else {
+                return
+            }
+
+            hideAmountsFlipGestureDetector.reset()
+            motionManager.deviceMotionUpdateInterval = 1.0 / 20.0
+            motionManager.startDeviceMotionUpdates(to: motionQueue) { [weak self] motion, error in
+                guard let self else {
+                    return
+                }
+                guard error == nil, let motion else {
+                    return
+                }
+                let shouldToggleHideAmounts = self.hideAmountsFlipGestureDetector.process(
+                    gravityZ: motion.gravity.z,
+                    timestamp: motion.timestamp
+                )
+                if shouldToggleHideAmounts {
+                    self.triggerHideAmountsGesture()
+                }
+            }
+        }
+
+        private func stopMotionDetection() {
+            if motionManager.isDeviceMotionActive {
+                motionManager.stopDeviceMotionUpdates()
+            }
+            hideAmountsFlipGestureDetector.reset()
+        }
+
+        private func triggerHideAmountsGesture() {
+            guard let webView else {
+                return
+            }
+            let javascript = """
+            (() => {
+                if (typeof window.onNativeToggleHideAmountsGesture === 'function') {
+                    return window.onNativeToggleHideAmountsGesture();
+                }
+                return false;
+            })();
+            """
+            DispatchQueue.main.async {
+                webView.evaluateJavaScript(javascript) { result, error in
+                    guard error == nil else {
+                        return
+                    }
+                    if self.parseJavascriptBool(result) {
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+                    }
+                }
+            }
+        }
+
+        private func parseJavascriptBool(_ result: Any?) -> Bool {
+            if let boolResult = result as? Bool {
+                return boolResult
+            }
+            if let numberResult = result as? NSNumber {
+                return numberResult.boolValue
+            }
+            if let stringResult = result as? String {
+                return (stringResult as NSString).boolValue
+            }
+            return false
         }
 
         // Intercept all URLs
