@@ -1,0 +1,6 @@
+.icon {
+  display: block;
+  height: 256px;
+  margin: 0 auto var(--space-default);
+  width: 256px;
+}

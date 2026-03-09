@@ -14,6 +14,8 @@ import { useOrientation } from '@/hooks/orientation';
 import { useMediaQuery } from '@/hooks/mediaquery';
 import { useSync } from '@/hooks/api';
 import { useNativeHideAmountsGesture } from '@/hooks/native-hide-amounts-gesture';
+import { HideAmountsGestureInfoDialog } from '@/components/hideamountsbutton/hide-amounts-gesture-info-dialog';
+import { runningInIOS } from '@/utils/env';
 
 type TProps = {
   children: ReactNode;
@@ -27,25 +29,43 @@ export const AppProvider = ({ children }: TProps) => {
   const [guideShown, setGuideShown] = useState(false);
   const [guideExists, setGuideExists] = useState(false);
   const [hideAmounts, setHideAmounts] = useState(false);
+  const [hideAmountsGestureInfoDialogOpen, setHideAmountsGestureInfoDialogOpen] = useState(false);
+  const [hideAmountsGestureInfoSeen, setHideAmountsGestureInfoSeen] = useState(false);
   const [activeSidebar, setActiveSidebar] = useState(false);
   const [chartDisplay, setChartDisplay] = useState<TChartDisplay>('all');
   const [firmwareUpdateDialogOpen, setFirmwareUpdateDialogOpen] = useState(false);
 
   const orientation = useOrientation();
   const isMobile = useMediaQuery('(max-width: 768px)');
+  const isIOS = runningInIOS();
 
   const toggleGuide = () => {
     setConfig({ frontend: { guideShown: !guideShown } });
     setGuideShown(prev => !prev);
   };
 
-  const toggleHideAmounts = useCallback(() => {
+  const toggleHideAmountsNative = useCallback(() => {
     setHideAmounts(prevHideAmounts => {
       const nextHideAmounts = !prevHideAmounts;
       setConfig({ frontend: { hideAmounts: nextHideAmounts } });
       return nextHideAmounts;
     });
   }, []);
+
+  const toggleHideAmounts = useCallback(() => {
+    toggleHideAmountsNative();
+    if (isIOS && !hideAmountsGestureInfoSeen) {
+      setHideAmountsGestureInfoDialogOpen(true);
+    }
+  }, [hideAmountsGestureInfoSeen, isIOS, toggleHideAmountsNative]);
+
+  const closeHideAmountsGestureInfoDialog = useCallback(() => {
+    setHideAmountsGestureInfoDialogOpen(false);
+    if (!hideAmountsGestureInfoSeen) {
+      setHideAmountsGestureInfoSeen(true);
+      setConfig({ frontend: { hideAmountsGestureInfoSeen: true } });
+    }
+  }, [hideAmountsGestureInfoSeen]);
 
   const toggleSidebar = () => {
     setActiveSidebar(prev => !prev);
@@ -66,37 +86,46 @@ export const AppProvider = ({ children }: TProps) => {
         if (frontend.hideAmounts !== undefined) {
           setHideAmounts(frontend.hideAmounts);
         }
+        if (frontend.hideAmountsGestureInfoSeen !== undefined) {
+          setHideAmountsGestureInfoSeen(frontend.hideAmountsGestureInfoSeen);
+        }
       } else {
         setGuideShown(true);
       }
     });
   }, []);
 
-  useNativeHideAmountsGesture(toggleHideAmounts);
+  useNativeHideAmountsGesture(toggleHideAmountsNative);
 
   return (
-    <AppContext.Provider
-      value={{
-        activeSidebar,
-        toggleGuide,
-        guideShown,
-        guideExists,
-        hideAmounts,
-        isTesting,
-        isDevServers,
-        isOnline,
-        nativeLocale,
-        chartDisplay,
-        setActiveSidebar,
-        setGuideExists,
-        setHideAmounts,
-        setChartDisplay,
-        toggleHideAmounts,
-        toggleSidebar,
-        setFirmwareUpdateDialogOpen,
-        firmwareUpdateDialogOpen
-      }}>
-      {children}
-    </AppContext.Provider>
+    <>
+      <AppContext.Provider
+        value={{
+          activeSidebar,
+          toggleGuide,
+          guideShown,
+          guideExists,
+          hideAmounts,
+          isTesting,
+          isDevServers,
+          isOnline,
+          nativeLocale,
+          chartDisplay,
+          setActiveSidebar,
+          setGuideExists,
+          setHideAmounts,
+          setChartDisplay,
+          toggleHideAmounts,
+          toggleSidebar,
+          setFirmwareUpdateDialogOpen,
+          firmwareUpdateDialogOpen
+        }}>
+        {children}
+      </AppContext.Provider>
+      <HideAmountsGestureInfoDialog
+        open={hideAmountsGestureInfoDialogOpen}
+        onClose={closeHideAmountsGestureInfoDialog}
+      />
+    </>
   );
 };

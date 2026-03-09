@@ -96,6 +96,7 @@ import advancedSettingsIconSVG from './assets/icons/advanced-settings-icon.svg';
 import advancedSettingsIconDarkSVG from './assets/icons/advanced-settings-icon-dark.svg';
 import accountsIconLightSVG from './assets/icons/accounts-icon-light.svg';
 import accountsIconDarkSVG from './assets/icons/accounts-icon-dark.svg';
+import flipGestureLightSVG from './assets/icons/flip-gesture-light.svg';
 
 
 type SVGProps = JSX.IntrinsicElements['svg'];
@@ -214,6 +215,7 @@ export const AccountsIconLight = (props: ImgProps) => (<img src={accountsIconLig
 export const AccountsIconDark = (props: ImgProps) => (<img src={accountsIconDarkSVG} draggable={false} {...props} />);
 export const CogLight = (props: ImgProps) => (<img src={cogLightSVG} draggable={false} {...props} />);
 export const CogDark = (props: ImgProps) => (<img src={cogDarkSVG} draggable={false} {...props} />);
+export const FlipGestureLight = (props: ImgProps) => (<img src={flipGestureLightSVG} draggable={false} {...props} />);
 /**
  * @deprecated Alert is only used for BitBox01 use `Warning` icon instead
  */
