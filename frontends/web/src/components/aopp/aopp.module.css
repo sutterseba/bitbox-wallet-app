@@ -40,6 +40,15 @@
     width: 100%;
     white-space: pre-line;
 }
+
+.accountSelect {
+    width: 100%;
+}
+
+.accountSelect :global(.react-select__control) {
+    text-align: left;
+}
+
 @media (min-width: 1200px) {
     .message {
         --size-default: 1.8rem;

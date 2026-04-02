@@ -8,7 +8,8 @@ import { equal } from '@/utils/equal';
 import { SimpleMarkup } from '@/utils/markup';
 import { View, ViewHeader, ViewContent, ViewButtons } from '@/components/view/view';
 import { Message } from '@/components/message/message';
-import { Button, Field, Label, Select } from '@/components/forms';
+import { Button, Field, Label } from '@/components/forms';
+import { Dropdown } from '@/components/dropdown/dropdown';
 import { CopyableInput } from '@/components/copy/Copy';
 import { PointToBitBox02 } from '@/components/icon';
 import { VerifyAddress } from './verifyaddress';
@@ -123,10 +124,11 @@ export const Aopp = () => {
   case 'choosing-account': {
     const options = aopp.accounts.map(account => {
       return {
-        text: account.name,
+        label: account.name,
         value: account.code,
       };
     });
+    const selectedAccount = options.find(option => option.value === accountCode);
     return (
       <form onSubmit={chooseAccount}>
         <View
@@ -138,12 +140,20 @@ export const Aopp = () => {
             <Vasp hostname={domain(aopp.callback)} />
           </ViewHeader>
           <ViewContent>
-            <Select
-              label={t('buy.info.selectLabel')}
-              options={options}
-              value={accountCode}
-              onChange={e => setAccountCode((e.target as HTMLSelectElement)?.value)}
-              id="account" />
+            <Field>
+              <Label id="account">{t('buy.info.selectLabel')}</Label>
+              <Dropdown<accountAPI.AccountCode>
+                inputId="account"
+                className={styles.accountSelect}
+                isSearchable={false}
+                mobileFullScreen
+                title={t('buy.info.selectLabel')}
+                options={options}
+                renderOptions={(option) => option.label}
+                value={selectedAccount}
+                onChange={(selected) => setAccountCode(selected.value)}
+              />
+            </Field>
           </ViewContent>
           <ViewButtons>
             <Button primary type="submit">{t('button.next')}</Button>
@@ -232,4 +242,3 @@ export const Aopp = () => {
     );
   }
 };
-
