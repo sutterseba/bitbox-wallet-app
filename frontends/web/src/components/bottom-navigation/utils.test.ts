@@ -14,7 +14,7 @@ describe('getBottomNavKey', () => {
     expect(getBottomNavKey('/lightning/topup')).toBe('lightning');
   });
 
-  it('maps Lightning setup and settings routes to the more tab', () => {
+  it('maps Lightning setup routes to the settings tab', () => {
     expect(getBottomNavKey('/lightning/activate')).toBe('settings');
     expect(getBottomNavKey('/lightning/disclaimer')).toBe('settings');
     expect(getBottomNavKey('/lightning/deactivate')).toBe('settings');
@@ -94,6 +94,7 @@ describe('getBottomNavIndex', () => {
 
     expect(getBottomNavIndex('accounts', items)).toBe(1);
     expect(getBottomNavIndex('market', items)).toBe(2);
+    expect(getBottomNavIndex('settings', items)).toBe(3);
   });
 });
 

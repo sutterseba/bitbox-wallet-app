@@ -46,7 +46,6 @@ export const BottomNavigation = ({
   const portfolioLabel = t('accountSummary.portfolio');
   const lightningLabel = 'Lightning';
   const marketLabel = t('generic.buySell');
-  // const moreLabel = t('settings.more');
   const navItems = getBottomNavItems({ hasLightningAccount, showAccounts, showMarket });
   const settingsLabel = t('sidebar.settings');
 
@@ -58,12 +57,18 @@ export const BottomNavigation = ({
   const settingsActive = bottomNavKey === 'settings';
   const InactiveSettingsIcon = isDarkMode ? CogLight : CogDark;
   const SettingsIcon = settingsActive ? CogBlue : InactiveSettingsIcon;
-  const activeIndex = getBottomNavIndex(bottomNavKey);
+  const activeIndex = getBottomNavIndex(bottomNavKey, navItems);
   const {
     containerRef,
     indicatorStyle,
     labelRefs,
-  } = useSlidingIndicator(activeIndex, `${portfolioLabel}:${accountLabel}:${marketLabel}:${settingsLabel}`);
+  } = useSlidingIndicator(activeIndex, navItems.map(item => ({
+    portfolio: portfolioLabel,
+    accounts: accountLabel,
+    lightning: lightningLabel,
+    market: marketLabel,
+    settings: settingsLabel,
+  }[item])).join(':'));
   const androidKeyboardVisible = useAndroidKeyboardVisible();
   const setLabelRef = (item: TBottomNavItem) => (element: HTMLSpanElement | null) => {
     labelRefs.current[navItems.indexOf(item)] = element;
@@ -149,7 +154,7 @@ export const BottomNavigation = ({
         >
           <SettingsIcon alt="" height={24} width={24} />
           <span className={styles.settingsLabel}>
-            <span ref={element => labelRefs.current[3] = element}>
+            <span ref={setLabelRef('settings')}>
               {settingsLabel}
             </span>
             {canUpgrade && (
