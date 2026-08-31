@@ -192,6 +192,7 @@ export const Aopp = () => {
         fullscreen
         textCenter
         verticallyCentered
+        withMobileSafetyMargin
         width="580px">
         <ViewHeader small title={t('aopp.title')}>
           <Vasp hostname={domain(aopp.callback)} />

@@ -46,6 +46,7 @@ export const Pairing = ({
       textCenter
       verticallyCentered
       withBottomBar
+      withMobileSafetyMargin
       width="670px">
       <ViewHeader
         small
