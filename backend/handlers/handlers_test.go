@@ -59,6 +59,7 @@ func (e *backendEnv) LoadLightningEncryptionKey(string) (string, error) { return
 func (e *backendEnv) DeleteLightningEncryptionKey(string) error         { return nil }
 func (e *backendEnv) BluetoothConnect(string)                           {}
 func (e *backendEnv) UserAgentPlatform() string                         { return "linux" }
+func (e *backendEnv) AppUpdate() *backend.AppUpdateConfig               { return nil }
 
 func TestGetNativeLocale(t *testing.T) {
 	const ptLocale = "pt"

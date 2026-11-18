@@ -95,6 +95,8 @@ func (e environment) UserAgentPlatform() string {
 	return "linux"
 }
 
+func (e environment) AppUpdate() *backend.AppUpdateConfig { return nil }
+
 // TestServeShutdownServe checks that you can call Serve twice in a row.
 func TestServeShutdownServe(t *testing.T) {
 	t.Cleanup(bridgecommon.Shutdown)

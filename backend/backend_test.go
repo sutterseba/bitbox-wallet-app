@@ -368,6 +368,8 @@ func (e environment) UserAgentPlatform() string {
 	return "linux"
 }
 
+func (e environment) AppUpdate() *AppUpdateConfig { return nil }
+
 type mockTransactionsSource struct {
 }
 

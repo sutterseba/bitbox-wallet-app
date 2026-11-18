@@ -32,6 +32,11 @@ static char* getSaveFilename(getSaveFilenameCallback f, const char* suggestedfil
     return f(suggestedfilename);
 }
 
+typedef void (*shutdownCallback) (void);
+static void requestShutdown(shutdownCallback f) {
+    f();
+}
+
 // equivalent to C.free but suitable for releasing a memory malloc'ed
 // in a non-posix portable environment, incompatible with cgo.
 // this is especially important on windows where the standard C runtime
@@ -55,6 +60,8 @@ import (
 	"unsafe"
 
 	"github.com/BitBoxSwiss/bitbox-wallet-app/backend"
+	"github.com/BitBoxSwiss/bitbox-wallet-app/backend/appupdate"
+	"github.com/BitBoxSwiss/bitbox-wallet-app/backend/appupdate/install"
 	"github.com/BitBoxSwiss/bitbox-wallet-app/backend/bridgecommon"
 	btctypes "github.com/BitBoxSwiss/bitbox-wallet-app/backend/coins/btc/types"
 	"github.com/BitBoxSwiss/bitbox-wallet-app/backend/devices/bitbox02/simulator"
@@ -118,6 +125,7 @@ func serve(
 	preferredGroupSeparator *C.cchar_t,
 	preferredLocale *C.cchar_t,
 	getSaveFilenameFn C.getSaveFilenameCallback,
+	shutdownFn C.shutdownCallback,
 ) {
 	log := logging.Get().WithGroup("server")
 	log.WithField("args", os.Args).Info("Started Qt application")
@@ -169,6 +177,24 @@ func serve(
 		}
 	}
 
+	var appUpdateConfig *backend.AppUpdateConfig
+	if install.Available() {
+		pkg := appupdate.PackageDMG
+		if runtime.GOOS == "windows" {
+			pkg = appupdate.PackageWindows
+		}
+		appUpdateConfig = &backend.AppUpdateConfig{
+			Package: pkg,
+			Install: func(download *appupdate.Download, messages appupdate.InstallMessages) error {
+				if err := install.Start(download.Path, download.Version, os.Args[1:], messages); err != nil {
+					return err
+				}
+				C.requestShutdown(shutdownFn)
+				return nil
+			},
+		}
+	}
+
 	bridgecommon.Serve(
 		*testnet,
 		*useSimulator,
@@ -186,6 +212,7 @@ func serve(
 			},
 		},
 		&bridgecommon.BackendEnvironment{
+			AppUpdateConfig: appUpdateConfig,
 			NotifyUserFunc: func(text string) {
 				cText := C.CString(text)
 				defer C.free(unsafe.Pointer(cText))

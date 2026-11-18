@@ -196,6 +196,7 @@ type BackendEnvironment struct {
 	DeleteLightningEncryptionKeyFunc func(string) error
 	BluetoothConnectFunc             func(string)
 	UserAgentPlatformFunc            func() string
+	AppUpdateConfig                  *backend.AppUpdateConfig
 }
 
 // NotifyUser implements backend.Environment.
@@ -327,6 +328,11 @@ func (env *BackendEnvironment) UserAgentPlatform() string {
 		return env.UserAgentPlatformFunc()
 	}
 	return ""
+}
+
+// AppUpdate implements backend.Environment.
+func (env *BackendEnvironment) AppUpdate() *backend.AppUpdateConfig {
+	return env.AppUpdateConfig
 }
 
 // Serve serves the BitBox API for use in a native client.

@@ -20,6 +20,7 @@ import (
 	"github.com/BitBoxSwiss/bitbox-wallet-app/backend"
 	"github.com/BitBoxSwiss/bitbox-wallet-app/backend/accounts"
 	accountsTypes "github.com/BitBoxSwiss/bitbox-wallet-app/backend/accounts/types"
+	"github.com/BitBoxSwiss/bitbox-wallet-app/backend/appupdate"
 	"github.com/BitBoxSwiss/bitbox-wallet-app/backend/banners"
 	"github.com/BitBoxSwiss/bitbox-wallet-app/backend/bitsurance"
 	"github.com/BitBoxSwiss/bitbox-wallet-app/backend/coins/btc"
@@ -99,6 +100,8 @@ type Backend interface {
 	ReconfigureHistoryExchangeRates()
 	GetUpdate() backend.UpdateState
 	CheckUpdate(context.Context) backend.UpdateState
+	DownloadUpdate() backend.AppUpdateResult
+	InstallUpdate(appupdate.InstallMessages) backend.AppUpdateResult
 	Banners() *banners.Banners
 	Lightning() *lightning.Lightning
 	Environment() backend.Environment
@@ -232,6 +235,8 @@ func NewHandlers(
 	getAPIRouterNoError(apiRouter)("/notify-user", handlers.postNotify).Methods("POST")
 	getAPIRouterNoError(apiRouter)("/open", handlers.postOpen).Methods("POST")
 	getAPIRouterNoError(apiRouter)("/update", handlers.getUpdate).Methods("GET")
+	getAPIRouterNoError(apiRouter)("/update/download", handlers.postDownloadUpdate).Methods("POST")
+	getAPIRouterNoError(apiRouter)("/update/install", handlers.postInstallUpdate).Methods("POST")
 	getAPIRouterNoError(apiRouter)("/banners/{key}", handlers.getBanners).Methods("GET")
 	getAPIRouterNoError(apiRouter)("/using-mobile-data", handlers.getUsingMobileData).Methods("GET")
 	getAPIRouterNoError(apiRouter)("/authenticate", handlers.postAuthenticate).Methods("POST")
@@ -645,6 +650,18 @@ func (handlers *Handlers) getUpdate(r *http.Request) interface{} {
 		return handlers.backend.CheckUpdate(r.Context())
 	}
 	return handlers.backend.GetUpdate()
+}
+
+func (handlers *Handlers) postDownloadUpdate(_ *http.Request) interface{} {
+	return handlers.backend.DownloadUpdate()
+}
+
+func (handlers *Handlers) postInstallUpdate(r *http.Request) interface{} {
+	var messages appupdate.InstallMessages
+	if err := json.NewDecoder(io.LimitReader(r.Body, 16<<10)).Decode(&messages); err != nil {
+		return backend.AppUpdateResult{ErrorCode: "invalid-request"}
+	}
+	return handlers.backend.InstallUpdate(messages)
 }
 
 func (handlers *Handlers) getBanners(r *http.Request) interface{} {

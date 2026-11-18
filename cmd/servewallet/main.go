@@ -182,6 +182,9 @@ func (webdevEnvironment) UserAgentPlatform() string {
 	return useragent.PlatformFromRuntime()
 }
 
+// AppUpdate is unavailable in a development browser session.
+func (webdevEnvironment) AppUpdate() *backendPkg.AppUpdateConfig { return nil }
+
 // NativeLocale naively implements backend.Environment.
 // This version is unlikely to work on Windows.
 func (webdevEnvironment) NativeLocale() string {

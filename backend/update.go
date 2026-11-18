@@ -8,8 +8,10 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"sync"
 	"time"
 
+	"github.com/BitBoxSwiss/bitbox-wallet-app/backend/appupdate"
 	"github.com/BitBoxSwiss/bitbox-wallet-app/backend/versioninfo"
 	"github.com/BitBoxSwiss/bitbox-wallet-app/util/errp"
 	"github.com/BitBoxSwiss/bitbox-wallet-app/util/locker"
@@ -38,6 +40,14 @@ type updateChecker struct {
 	checkLock  locker.Locker
 	latestLock locker.Locker
 	cancel     context.CancelFunc
+
+	installation   *AppUpdateState
+	download       func(context.Context, string, string) (*appupdate.Download, error)
+	install        func(*appupdate.Download, appupdate.InstallMessages) error
+	prepared       *appupdate.Download
+	downloadCancel context.CancelFunc
+	downloadDone   sync.WaitGroup
+	closed         bool
 }
 
 // UpdateFile is retrieved from the server.
@@ -57,8 +67,9 @@ type UpdateFile struct {
 
 // UpdateState is the revisioned result of the latest successful update check.
 type UpdateState struct {
-	Revision uint64      `json:"revision"`
-	Update   *UpdateFile `json:"update"`
+	Revision     uint64          `json:"revision"`
+	Update       *UpdateFile     `json:"update"`
+	Installation *AppUpdateState `json:"installation,omitempty"`
 }
 
 func newUpdateChecker(proxy *socksproxy.SocksProxy, userAgent string) *updateChecker {
@@ -102,6 +113,9 @@ func checkForUpdate(
 		return nil, errp.WithStack(err)
 	}
 
+	if updateFile.NewVersion == nil {
+		return nil, errp.New("update response is missing its version")
+	}
 	if versioninfo.Version.AtLeast(updateFile.NewVersion) {
 		return nil, nil
 	}
@@ -141,6 +155,7 @@ func (checker *updateChecker) stop() {
 		checker.cancel()
 		checker.cancel = nil
 	}
+	checker.stopDownload()
 }
 
 // run checks immediately and waits for the interval after each attempt before retrying.
@@ -179,28 +194,47 @@ func (checker *updateChecker) checkAndSet(ctx context.Context, query url.Values)
 
 func (checker *updateChecker) set(updateFile *UpdateFile) UpdateState {
 	unlock := checker.latestLock.Lock()
+	// Keep the selected release stable until its download/install finishes or fails.
+	if checker.closed || checker.prepared != nil || (checker.installation != nil && checker.installation.Status == "downloading") {
+		state := checker.snapshotLocked()
+		unlock()
+		return state
+	}
+	if checker.installation != nil && !sameUpdateVersion(checker.latest, updateFile) {
+		checker.installation = &AppUpdateState{Status: "available"}
+	}
 	checker.latest = updateFile
 	checker.revision++
-	state := UpdateState{
-		Revision: checker.revision,
-		Update:   checker.latest,
-	}
+	state := checker.snapshotLocked()
 	unlock()
 
+	checker.notifyUpdate(state)
+	return state
+}
+
+func (checker *updateChecker) notifyUpdate(state UpdateState) {
 	checker.Notify(observable.Event{
 		Subject: "update",
 		Action:  action.Replace,
 		Object:  state,
 	})
-	return state
 }
 
 func (checker *updateChecker) get() UpdateState {
 	defer checker.latestLock.RLock()()
-	return UpdateState{
+	return checker.snapshotLocked()
+}
+
+func (checker *updateChecker) snapshotLocked() UpdateState {
+	state := UpdateState{
 		Revision: checker.revision,
 		Update:   checker.latest,
 	}
+	if checker.installation != nil {
+		installation := *checker.installation
+		state.Installation = &installation
+	}
+	return state
 }
 
 // GetUpdate returns the result of the latest successful update check.

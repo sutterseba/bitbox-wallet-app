@@ -82,12 +82,18 @@ Section -Main SEC0000
     FindWindow $0 "" "BitBoxApp"
     StrCmp $0 0 notRunning
         MessageBox MB_OK|MB_ICONEXCLAMATION "BitBoxApp is running. Please close it first and restart the installer." /SD IDOK
+        SetErrorLevel 2
         Quit
     notRunning:
 
     SetOutPath $INSTDIR
     SetOverwrite on
+    ClearErrors
     File /r "build\windows\*"
+    ${If} ${Errors}
+        SetErrorLevel 1
+        Abort "Could not replace the BitBoxApp files."
+    ${EndIf}
     SetOutPath $INSTDIR\daemon
     SetOutPath $INSTDIR\doc
     #File /r /x Makefile* @abs_top_srcdir@/doc\*.*
@@ -124,7 +130,7 @@ Section -post SEC0001
         ${If} $0 == ""
             Goto true
         ${Endif}
-        MessageBox MB_YESNO "Do you want to set the BitBoxApp as the default program to handle AOPP (Address Ownership Proof Protocol) links?" IDYES true IDNO false
+        MessageBox MB_YESNO "Do you want to set the BitBoxApp as the default program to handle AOPP (Address Ownership Proof Protocol) links?" /SD IDNO IDYES true IDNO false
         true:
             WriteRegStr HKCU "SOFTWARE\Classes\aopp" "" "URL:aopp Protocol"
             WriteRegStr HKCU "SOFTWARE\Classes\aopp" "URL Protocol" ""
@@ -182,6 +188,11 @@ Section -un.post UNSEC0001
 no_smgroup:
     Pop $R0
 SectionEnd
+
+# Report failed silent updates to the supervising updater process.
+Function .onInstFailed
+    SetErrorLevel 1
+FunctionEnd
 
 # Uninstaller functions
 Function un.onInit

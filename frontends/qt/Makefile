@@ -81,6 +81,10 @@ osx:
 	# The `-executable` flag is needed to have libserver.so resolve libbreez_sdk_spark_bindings.
 	cd build/osx/ && macdeployqt BitBox.app -executable=BitBox.app/Contents/Frameworks/libserver.so
 	cp build/assets.rcc build/osx/BitBox.app/Contents/MacOS/
+	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -mod=vendor -trimpath -ldflags="-s -w" -o build/updater-arm64 ../../cmd/bitbox-app-update
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -mod=vendor -trimpath -ldflags="-s -w" -o build/updater-amd64 ../../cmd/bitbox-app-update
+	lipo -create build/updater-arm64 build/updater-amd64 -output build/osx/BitBox.app/Contents/MacOS/bitbox-app-update
+	rm build/updater-arm64 build/updater-amd64
 	install_name_tool -change libserver.so @executable_path/../Frameworks/libserver.so build/osx/BitBox.app/Contents/MacOS/BitBox
 	cp -r resources/MacOS/Testnet.app build/osx/Testnet.app
 	cp build/osx/BitBox.app/Contents/Resources/Assets.car build/osx/Testnet.app/Contents/Resources/

@@ -28,6 +28,11 @@ static char* getSaveFilename(getSaveFilenameCallback f, const char* suggestedfil
     return f(suggestedfilename);
 }
 
+typedef void (*shutdownCallback) (void);
+static void requestShutdown(shutdownCallback f) {
+    f();
+}
+
 // equivalent to C.free but suitable for releasing a memory malloc'ed
 // in a non-posix portable environment, incompatible with cgo.
 // this is especially important on windows where the standard C runtime
@@ -48,7 +53,7 @@ extern "C" {
 extern void backendCall(int queryID, cchar_t* s);
 extern void setOnline(bool online);
 extern void handleURI(cchar_t* uri);
-extern void serve(cppHeapFree cppHeapFreeFn, pushNotificationsCallback pushNotificationsFn, responseCallback responseFn, notifyUserCallback notifyUserFn, cchar_t* preferredDecimalSeparator, cchar_t* preferredGroupSeparator, cchar_t* preferredLocale, getSaveFilenameCallback getSaveFilenameFn);
+extern void serve(cppHeapFree cppHeapFreeFn, pushNotificationsCallback pushNotificationsFn, responseCallback responseFn, notifyUserCallback notifyUserFn, cchar_t* preferredDecimalSeparator, cchar_t* preferredGroupSeparator, cchar_t* preferredLocale, getSaveFilenameCallback getSaveFilenameFn, shutdownCallback shutdownFn);
 extern void systemOpen(cchar_t* url);
 extern void goLog(cchar_t* msg);
 extern void backendShutdown();

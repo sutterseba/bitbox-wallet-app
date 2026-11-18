@@ -231,6 +231,8 @@ type Environment interface {
 	BluetoothConnect(identifier string)
 	// UserAgentPlatform returns the platform/device token used in the app's outbound user agent.
 	UserAgentPlatform() string
+	// AppUpdate returns the native installer capability, or nil when updates are managed externally.
+	AppUpdate() *AppUpdateConfig
 }
 
 // Backend ties everything together and is the main starting point to use the BitBox wallet library.
@@ -385,6 +387,7 @@ func NewBackend(arguments *arguments.Arguments, environment Environment) (*Backe
 	backend.notifier = notifier
 	backend.socksProxy = backendProxy
 	backend.updateChecker = newUpdateChecker(&backend.socksProxy, backend.userAgent())
+	backend.configureAppUpdate()
 	backend.updateChecker.Observe(backend.Notify)
 	backend.httpClient = hclient
 	backend.ethupdater = eth.NewUpdater(accountUpdate, backend.httpClient, backend.etherScanRateLimiter, backend.updateETHAccounts)

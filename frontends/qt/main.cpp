@@ -440,6 +440,10 @@ int main(int argc, char *argv[])
             char* result = (char*)::malloc(strlen(cString)+1); // Go must free with C.customHeapFree
             memcpy(result, cString, strlen(cString)+1);
             return result;
+        },
+        // shutdownCallback: the updater waits for normal backend teardown and process exit.
+        []() {
+            QMetaObject::invokeMethod(QCoreApplication::instance(), "quit", Qt::QueuedConnection);
         });
 
     // Trigger the online status change event once at startup.
@@ -461,9 +465,9 @@ int main(int argc, char *argv[])
                 permission.grant();
             }
         });
-    QWebChannel channel;
-    channel.registerObject("backend", webClass);
-    view->page()->setWebChannel(&channel);
+    auto* channel = new QWebChannel();
+    channel->registerObject("backend", webClass);
+    view->page()->setWebChannel(channel);
     view->settings()->setAttribute(QWebEngineSettings::JavascriptCanAccessClipboard, true);
     // Disabled to prevent iframes from reading clipboard. To enable clipboard reading in the top
     // frame, a custom bridge would be necessary.
@@ -498,7 +502,11 @@ int main(int argc, char *argv[])
 
     QObject::connect(&a, &QApplication::aboutToQuit, [&]() {
         webClassMutex.lock();
-        channel.deregisterObject(webClass);
+        // Destroy the channel and its queued signal handlers while their sender and
+        // WebEngine transport still exist. A queued signal cannot inspect a deleted sender.
+        mainPage->setWebChannel(nullptr);
+        delete channel;
+        channel = nullptr;
         delete webClass;
         webClass = nullptr;
         delete view;
