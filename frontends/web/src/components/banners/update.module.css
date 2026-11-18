@@ -1,3 +1,30 @@
 .link {
   color: inherit;
 }
+
+.action {
+  border: none;
+  border-radius: 0;
+  color: inherit;
+  font: inherit;
+  min-height: 0;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.action:focus-visible {
+  outline: 2px solid var(--color-blue);
+  outline-offset: 2px;
+}
+
+.spinner {
+  display: inline-flex;
+  margin-left: var(--space-quarter);
+  vertical-align: middle;
+}
+
+.spinner img {
+  height: 1em;
+  margin: 0;
+  width: 1em;
+}

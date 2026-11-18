@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import { apiGet } from '@/utils/request';
+import { apiGet, apiPost } from '@/utils/request';
 import { subscribeEndpoint, TSubscriptionCallback } from './subscribe';
 
 /**
@@ -16,7 +16,13 @@ export type TUpdateFile = {
 export type TUpdateState = {
   revision: number;
   update: TUpdateFile | null;
+  installation?: {
+    status: 'available' | 'downloading' | 'ready' | 'installing' | 'error';
+    errorCode?: 'download' | 'install';
+  };
 };
+
+type TUpdateResult = { success: true } | { success: false; errorCode?: string };
 
 export const getVersion = (): Promise<string> => {
   return apiGet('version');
@@ -28,6 +34,14 @@ export const getUpdate = (): Promise<TUpdateState> => {
 
 export const checkUpdate = (): Promise<TUpdateState> => {
   return apiGet('update?about=1');
+};
+
+export const downloadUpdate = (): Promise<TUpdateResult> => {
+  return apiPost('update/download');
+};
+
+export const installUpdate = (messages: { installFailed: string; relaunchFailed: string }): Promise<TUpdateResult> => {
+  return apiPost('update/install', messages);
 };
 
 export const subscribeUpdate = (

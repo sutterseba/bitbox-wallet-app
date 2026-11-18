@@ -129,6 +129,17 @@
     "xpubRequested": "Sharing your xpub lets external services see your account addresses. Your coins are still safe and remain in your control."
   },
   "app": {
+    "update": {
+      "downloadError": "The update could not be downloaded or verified. Please try again.",
+      "downloading": "Downloading update",
+      "install": "Install",
+      "installError": "The update could not be installed. Please try again.",
+      "installFailedAfterClose": "The update could not be installed. BitBoxApp will try to reopen.",
+      "installNow": "Install now",
+      "installing": "Installing update. The app will restart.",
+      "ready": "Update ready to install.",
+      "relaunchFailed": "BitBoxApp could not reopen. Please open it manually."
+    },
     "upgrade": "A new version of this app is available! Please upgrade from {{current}} to {{version}}."
   },
   "auth": {
